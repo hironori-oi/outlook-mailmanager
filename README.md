@@ -49,6 +49,9 @@ Outlook（classic / 新しい Outlook どちらでも）から、メールを**�
 自動起動の登録から監視開始まで全部済みます（Python のインストールも不要）。
 初回に青い警告画面が出たら「詳細情報」→「実行」を押してください。
 
+やめたいときは、同じリリースページの `StopMailConverter.cmd` をダウンロードして
+ダブルクリックすれば、停止と自動起動の解除まで行われます。
+
 ## Python で導入する方法（3 手順）
 
 1. https://github.com/hironori-oi/outlook-mailmanager を開き、

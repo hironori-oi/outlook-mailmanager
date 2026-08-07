@@ -1,6 +1,7 @@
 @echo off
 chcp 932 >nul
-rem ƒ[ƒ‹•ÏŠ·‚Ìí’“ŠÄŽ‹‚ð’âŽ~‚·‚é
+rem ƒ[ƒ‹•ÏŠ·‚Ìí’“ŠÄŽ‹‚ð’âŽ~‚·‚éiŽ©“®‹N“®‚Ì“o˜^‚ÍŽc‚·BÄŠJ‚Í start_watcher.cmdj
+taskkill /f /im OutlookMailConverter.exe >nul 2>&1
 powershell -NoProfile -Command "Get-CimInstance Win32_Process | Where-Object { $_.Name -match '^python' -and $_.CommandLine -match 'mail_converter' -and $_.ProcessId -ne $PID } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }"
 echo ŠÄŽ‹ƒvƒƒOƒ‰ƒ€‚ð’âŽ~‚µ‚Ü‚µ‚½
 timeout /t 3 >nul
