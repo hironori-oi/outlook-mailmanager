@@ -31,7 +31,7 @@ if not defined PYW (
 
 rem --- ライブラリの導入
 echo 必要なライブラリを導入しています...
-"%PY%" -m pip install --quiet extract_msg watchdog customtkinter
+"%PY%" -m pip install --quiet extract_msg watchdog customtkinter pillow
 if errorlevel 1 (
     echo [エラー] ライブラリの導入に失敗しました。インターネット接続を確認してください。
     pause
