@@ -1,0 +1,7 @@
+# 実行時に各 PC で生成されるファイル（リポジトリに含めない）
+state.json
+converter.log
+converter.log.old
+*.log
+lantern.ico
+__pycache__/
