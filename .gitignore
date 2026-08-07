@@ -5,3 +5,8 @@ converter.log.old
 *.log
 lantern.ico
 __pycache__/
+
+# exe ビルドの生成物
+build/
+dist/
+*.spec

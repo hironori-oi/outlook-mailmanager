@@ -35,6 +35,7 @@ import os
 import queue as queue_mod
 import re
 import socket
+import subprocess
 import sys
 import time
 import traceback
@@ -42,7 +43,11 @@ from email import policy
 from email.utils import parsedate_to_datetime
 from pathlib import Path
 
-TOOL_DIR = Path(__file__).resolve().parent
+if getattr(sys, "frozen", False):
+    # exe 版（PyInstaller）: 設定・記録・ログは exe と同じフォルダーに置く
+    TOOL_DIR = Path(sys.executable).resolve().parent
+else:
+    TOOL_DIR = Path(__file__).resolve().parent
 CONFIG_PATH = TOOL_DIR / "config.ini"
 STATE_PATH = TOOL_DIR / "state.json"
 LOG_PATH = TOOL_DIR / "converter.log"
@@ -905,9 +910,11 @@ def load_config():
     if CONFIG_PATH.exists():
         parser.read(CONFIG_PATH, encoding="utf-8")
     g = parser["general"] if parser.has_section("general") else {}
+    home = os.environ.get("USERPROFILE", str(Path.home()))
+    default_roots = f"{home}\\Documents; {home}\\Desktop"
     return {
-        "watch_roots": _split_paths(g.get("watch_roots", str(TOOL_DIR.parent))),
-        "folders": _split_paths(g.get("folders", str(TOOL_DIR.parent))),
+        "watch_roots": _split_paths(g.get("watch_roots", default_roots)),
+        "folders": _split_paths(g.get("folders", "")),
         "mode": "ask" if str(g.get("mode", "auto")).strip().lower() == "ask" else "auto",
         "format": str(g.get("format", "html")).strip().lower(),
         "layout": "flat" if str(g.get("layout", "folder")).strip().lower() == "flat" else "folder",
@@ -1180,12 +1187,90 @@ def watch(cfg, log):
             time.sleep(5)
 
 
+# ---------------------------------------------------------------- exe 版の初回セットアップ
+
+def ensure_default_config():
+    """exe 版の初回起動時、同梱の config.ini の雛形を exe の隣に書き出す。"""
+    if not getattr(sys, "frozen", False) or CONFIG_PATH.exists():
+        return
+    try:
+        bundled = Path(getattr(sys, "_MEIPASS", "")) / "config.ini"
+        if bundled.is_file():
+            CONFIG_PATH.write_bytes(bundled.read_bytes())
+    except OSError:
+        pass
+
+
+def _show_info(message):
+    """導入完了などの小さなお知らせ画面（15 秒で自動で閉じる）。"""
+    try:
+        import customtkinter as ctk
+        C = DIALOG_C
+        root = ctk.CTk(fg_color=C["bg"])
+        root.title("メール変換ツール")
+        root.attributes("-topmost", True)
+        root.resizable(False, False)
+        ctk.CTkLabel(root, text=message, font=ctk.CTkFont(size=13),
+                     text_color=C["text"], justify="left",
+                     wraplength=420).pack(padx=28, pady=(24, 12))
+        ctk.CTkButton(root, text="閉じる", command=root.destroy,
+                      fg_color=C["accent"], hover_color=C["accent_hi"],
+                      text_color=C["accent_fg"], corner_radius=8,
+                      height=36, width=120).pack(pady=(0, 20))
+        root.update_idletasks()
+        x = (root.winfo_screenwidth() - root.winfo_width()) // 2
+        root.geometry(f"+{x}+{root.winfo_screenheight() // 4}")
+        root.lift()
+        root.focus_force()
+        root.after(15000, root.destroy)
+        root.mainloop()
+    except Exception:
+        pass
+
+
+def first_time_setup(cfg, log):
+    """exe をダブルクリックしたときの導入処理（exe 版専用）。
+
+    サインイン時の自動起動を登録し、完了を表示して、そのまま監視を開始する。
+    2 回目以降に実行しても安全（登録は上書き、監視は二重起動しない）。
+    """
+    exe = Path(sys.executable).resolve()
+    lnk = (Path(os.environ["APPDATA"]) / "Microsoft" / "Windows"
+           / "Start Menu" / "Programs" / "Startup" / "OutlookMailConverter.lnk")
+    ps = (
+        "$ws = New-Object -ComObject WScript.Shell; "
+        f"$l = $ws.CreateShortcut('{lnk}'); "
+        f"$l.TargetPath = '{exe}'; "
+        "$l.Arguments = '--watch'; "
+        f"$l.WorkingDirectory = '{exe.parent}'; "
+        "$l.Save()"
+    )
+    try:
+        subprocess.run(["powershell", "-NoProfile", "-Command", ps],
+                       check=True, timeout=60,
+                       creationflags=subprocess.CREATE_NO_WINDOW)
+        log("サインイン時の自動起動を登録しました")
+    except Exception:
+        log(f"自動起動の登録に失敗しました:\n{traceback.format_exc()}")
+    _show_info(
+        "導入が完了しました。\n\n"
+        "Outlook のメールを「ドキュメント」や「デスクトップ」の\n"
+        "フォルダーへドラッグ＆ドロップすると、数秒で保存画面が開きます。\n\n"
+        "今後はパソコンにサインインすると自動で動きます。"
+    )
+    watch(cfg, log)
+
+
 # ---------------------------------------------------------------- main
 
 def main(argv):
+    ensure_default_config()
     cfg = load_config()
     log = make_logger()
     if not argv or argv[0] in ("-h", "--help"):
+        if getattr(sys, "frozen", False):
+            first_time_setup(cfg, log)
+            return 0
         print(__doc__)
         return 0
     if argv[0] == "--watch":

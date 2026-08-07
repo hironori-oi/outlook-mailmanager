@@ -1,0 +1,40 @@
+name: build-exe
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install extract_msg watchdog customtkinter pillow pyinstaller
+
+      - name: Generate icon
+        run: python -c "from PIL import Image, ImageDraw; img = Image.new('RGBA', (64, 64), (0, 0, 0, 0)); d = ImageDraw.Draw(img); d.rounded_rectangle((2, 2, 62, 62), radius=14, fill='#1E232A'); d.ellipse((22, 22, 42, 42), fill='#FF9F5A'); img.save('lantern.ico', sizes=[(16, 16), (32, 32), (48, 48)])"
+
+      - name: Build exe
+        run: pyinstaller --onefile --noconsole --name OutlookMailConverter --icon lantern.ico --add-data "config.ini;." --collect-all customtkinter --collect-all extract_msg mail_converter.py
+
+      - name: Attach exe to release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/OutlookMailConverter.exe
+
+      - name: Upload artifact (manual run)
+        if: "!startsWith(github.ref, 'refs/tags/')"
+        uses: actions/upload-artifact@v4
+        with:
+          name: OutlookMailConverter
+          path: dist/OutlookMailConverter.exe

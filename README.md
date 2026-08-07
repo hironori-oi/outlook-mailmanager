@@ -42,7 +42,14 @@ Outlook（classic / 新しい Outlook どちらでも）から、メールを**�
 - 暗号化メールなど変換できないものは、壊さずそのまま残します
 - 開発用フォルダー（git 管理下や node_modules など）は自動で対象外になります
 
-## 他の PC への導入方法（3 手順）
+## いちばん簡単な導入（exe 版・推奨）
+
+[リリースページ](https://github.com/hironori-oi/outlook-mailmanager/releases)から
+`OutlookMailConverter.exe` をダウンロードし、好きな場所に置いて**ダブルクリック 1 回**。
+自動起動の登録から監視開始まで全部済みます（Python のインストールも不要）。
+初回に青い警告画面が出たら「詳細情報」→「実行」を押してください。
+
+## Python で導入する方法（3 手順）
 
 1. https://github.com/hironori-oi/outlook-mailmanager を開き、
    緑の「Code」ボタン →「Download ZIP」でダウンロードして好きな場所に展開する
